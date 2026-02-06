@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using KBanakakis.Beacon.Repositories;
 using NUnit.Framework;
 
@@ -10,28 +9,43 @@ namespace KBanakakis.Beacon.Tests
         [Test]
         public void BeaconClientReturnsSnapshotFromRepository()
         {
-            var snapshot = new RepositorySnapshot(DateTimeOffset.UtcNow, new Dictionary<string, string>());
-            var repository = new StubConfigRepository(snapshot);
+            var snapshot = new RepositorySnapshot(
+                "1.0.0",
+                1,
+                DateTimeOffset.UtcNow,
+                RepositorySnapshot.ConfigProvenance.Default,
+                null);
+            var repository = new InMemoryConfigRepository(snapshot);
             var client = new BeaconClient(repository);
 
             var result = client.GetSnapshot();
 
-            Assert.AreSame(snapshot, result);
+            Assert.AreEqual("1.0.0", result.ConfigVersion);
         }
 
-        private sealed class StubConfigRepository : IConfigRepository
+        [Test]
+        public void SnapshotChangedFiresWhenSnapshotUpdates()
         {
-            private readonly RepositorySnapshot _snapshot;
+            var snapshot = new RepositorySnapshot(
+                "1.0.0",
+                1,
+                DateTimeOffset.UtcNow,
+                RepositorySnapshot.ConfigProvenance.Default,
+                null);
+            var repository = new InMemoryConfigRepository(snapshot);
+            var client = new BeaconClient(repository);
+            var wasCalled = false;
 
-            public StubConfigRepository(RepositorySnapshot snapshot)
-            {
-                _snapshot = snapshot;
-            }
+            client.SnapshotChanged += _ => wasCalled = true;
 
-            public RepositorySnapshot LoadSnapshot()
-            {
-                return _snapshot;
-            }
+            repository.SetSnapshotForTests(new RepositorySnapshot(
+                "1.0.1",
+                2,
+                DateTimeOffset.UtcNow,
+                RepositorySnapshot.ConfigProvenance.Remote,
+                null));
+
+            Assert.IsTrue(wasCalled);
         }
     }
 }

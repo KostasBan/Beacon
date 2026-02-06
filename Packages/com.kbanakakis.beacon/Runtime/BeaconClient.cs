@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using KBanakakis.Beacon.Repositories;
 
 namespace KBanakakis.Beacon
@@ -17,7 +19,18 @@ namespace KBanakakis.Beacon
 
         public RepositorySnapshot GetSnapshot()
         {
-            return _repository.LoadSnapshot();
+            return _repository.GetSnapshot();
+        }
+
+        public event Action<RepositorySnapshot> SnapshotChanged
+        {
+            add => _repository.SnapshotChanged += value;
+            remove => _repository.SnapshotChanged -= value;
+        }
+
+        public Task<RefreshResult> RefreshAsync(CancellationToken ct)
+        {
+            return _repository.RefreshAsync(ct);
         }
     }
 }
