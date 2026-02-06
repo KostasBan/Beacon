@@ -1,0 +1,11 @@
+{
+  "name": "com.kbanakakis.beacon",
+  "version": "0.1.0",
+  "displayName": "Beacon",
+  "description": "Beacon client and configuration repositories.",
+  "unity": "2022.3",
+  "license": "MIT",
+  "author": {
+    "name": "KBanakakis"
+  }
+}
