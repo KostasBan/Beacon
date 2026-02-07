@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -10,7 +9,7 @@ namespace KBanakakis.Beacon.Repositories
     public sealed class DiskConfigStore : IConfigStore
     {
         private const string ConfigFileName = "lkg.json";
-        private const string MetadataFileName = "lkg.meta.json";
+        private const string MetadataFileName = "lkg.state";
         private readonly string _baseDirectory;
 
         public DiskConfigStore()
@@ -53,20 +52,13 @@ namespace KBanakakis.Beacon.Repositories
             {
                 try
                 {
-                    var metadataBytes = File.ReadAllBytes(metadataPath);
-                    using var document = JsonDocument.Parse(metadataBytes);
-                    if (document.RootElement.ValueKind == JsonValueKind.Object
-                        && document.RootElement.TryGetProperty("storedVersion", out var versionElement)
-                        && versionElement.ValueKind == JsonValueKind.String)
+                    storedVersion = File.ReadAllText(metadataPath);
+                    if (string.IsNullOrEmpty(storedVersion))
                     {
-                        storedVersion = versionElement.GetString();
+                        storedVersion = null;
                     }
                 }
                 catch (IOException)
-                {
-                    storedVersion = null;
-                }
-                catch (JsonException)
                 {
                     storedVersion = null;
                 }
@@ -89,7 +81,7 @@ namespace KBanakakis.Beacon.Repositories
             WriteAtomic(configPath, stored.Bytes);
 
             var metadataPath = GetMetadataPath();
-            var metadataPayload = JsonSerializer.SerializeToUtf8Bytes(new StoredMetadata(stored.StoredVersion));
+            var metadataPayload = stored.StoredVersion ?? string.Empty;
             WriteAtomic(metadataPath, metadataPayload);
 
             return Task.CompletedTask;
@@ -119,14 +111,18 @@ namespace KBanakakis.Beacon.Repositories
             }
         }
 
-        private readonly struct StoredMetadata
+        private static void WriteAtomic(string destinationPath, string payload)
         {
-            public StoredMetadata(string? storedVersion)
+            var tempPath = destinationPath + ".tmp";
+            File.WriteAllText(tempPath, payload);
+            if (File.Exists(destinationPath))
             {
-                StoredVersion = storedVersion;
+                File.Replace(tempPath, destinationPath, null);
             }
-
-            public string? StoredVersion { get; }
+            else
+            {
+                File.Move(tempPath, destinationPath);
+            }
         }
     }
 }

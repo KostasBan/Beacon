@@ -1,6 +1,6 @@
 using System;
 using System.Text;
-using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace KBanakakis.Beacon.Repositories
 {
@@ -28,49 +28,112 @@ namespace KBanakakis.Beacon.Repositories
                 return new ValidationResult(false, 0, null, "Config payload did not look like JSON.");
             }
 
-            var schemaVersion = 0;
-            string? configVersion = null;
-
-            try
+            if (!IsWellFormedJsonObject(payload))
             {
-                using var document = JsonDocument.Parse(payload);
-                if (document.RootElement.ValueKind == JsonValueKind.Object
-                    && document.RootElement.TryGetProperty("meta", out var metaElement)
-                    && metaElement.ValueKind == JsonValueKind.Object)
-                {
-                    if (metaElement.TryGetProperty("schemaVersion", out var schemaElement))
-                    {
-                        if (schemaElement.ValueKind == JsonValueKind.Number
-                            && schemaElement.TryGetInt32(out var parsedSchema))
-                        {
-                            schemaVersion = parsedSchema;
-                        }
-                        else if (schemaElement.ValueKind == JsonValueKind.String
-                            && int.TryParse(schemaElement.GetString(), out var parsedSchemaText))
-                        {
-                            schemaVersion = parsedSchemaText;
-                        }
-                    }
+                return new ValidationResult(false, 0, null, "Malformed JSON.");
+            }
 
-                    if (metaElement.TryGetProperty("configVersion", out var configElement))
-                    {
-                        if (configElement.ValueKind == JsonValueKind.String)
-                        {
-                            configVersion = configElement.GetString();
-                        }
-                        else
-                        {
-                            configVersion = configElement.ToString();
-                        }
-                    }
-                }
-            }
-            catch (JsonException)
-            {
-                return new ValidationResult(true, 0, null, null);
-            }
+            var schemaVersion = ExtractSchemaVersion(payload);
+            var configVersion = ExtractConfigVersion(payload);
 
             return new ValidationResult(true, schemaVersion, configVersion, null);
+        }
+
+        private static bool IsWellFormedJsonObject(string payload)
+        {
+            var index = 0;
+            while (index < payload.Length && char.IsWhiteSpace(payload[index]))
+            {
+                index++;
+            }
+
+            if (index >= payload.Length || payload[index] != '{')
+            {
+                return false;
+            }
+
+            var stack = new char[payload.Length];
+            var stackCount = 0;
+            var inString = false;
+            var escape = false;
+
+            for (var i = 0; i < payload.Length; i++)
+            {
+                var current = payload[i];
+                if (inString)
+                {
+                    if (escape)
+                    {
+                        escape = false;
+                        continue;
+                    }
+
+                    if (current == '\\')
+                    {
+                        escape = true;
+                        continue;
+                    }
+
+                    if (current == '"')
+                    {
+                        inString = false;
+                    }
+
+                    continue;
+                }
+
+                if (current == '"')
+                {
+                    inString = true;
+                    continue;
+                }
+
+                if (current == '{' || current == '[')
+                {
+                    stack[stackCount++] = current;
+                    continue;
+                }
+
+                if (current == '}' || current == ']')
+                {
+                    if (stackCount == 0)
+                    {
+                        return false;
+                    }
+
+                    var open = stack[--stackCount];
+                    if ((current == '}' && open != '{') || (current == ']' && open != '['))
+                    {
+                        return false;
+                    }
+
+                    continue;
+                }
+            }
+
+            if (inString || stackCount != 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static int ExtractSchemaVersion(string payload)
+        {
+            var match = Regex.Match(payload, "\"schemaVersion\"\\s*:\\s*(-?\\d+)");
+            if (match.Success && int.TryParse(match.Groups[1].Value, out var schemaVersion))
+            {
+                return schemaVersion;
+            }
+
+            return 0;
+        }
+
+        private static string? ExtractConfigVersion(string payload)
+        {
+            var match = Regex.Match(payload, "\"configVersion\"\\s*:\\s*\"([^\"]*)\"");
+            return match.Success ? match.Groups[1].Value : null;
         }
     }
 }
