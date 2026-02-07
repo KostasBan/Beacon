@@ -13,7 +13,7 @@ namespace KBanakakis.Beacon.Repositories
 
         public InMemoryConfigRepository(RepositorySnapshot snapshot)
         {
-            _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
+            _snapshot = snapshot;
         }
 
         public event Action<RepositorySnapshot>? SnapshotChanged;

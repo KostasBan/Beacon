@@ -5,7 +5,7 @@ namespace KBanakakis.Beacon.Repositories
     /// <summary>
     /// Immutable snapshot of configuration data.
     /// </summary>
-    public sealed class RepositorySnapshot
+    public readonly struct RepositorySnapshot
     {
         public enum ConfigProvenance
         {
