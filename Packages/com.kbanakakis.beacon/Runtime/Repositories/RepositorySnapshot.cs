@@ -1,21 +1,42 @@
 using System;
-using System.Collections.Generic;
 
 namespace KBanakakis.Beacon.Repositories
 {
     /// <summary>
-    /// Immutable snapshot of configuration entries.
+    /// Immutable snapshot of configuration data.
     /// </summary>
-    public sealed class RepositorySnapshot
+    public readonly struct RepositorySnapshot
     {
-        public RepositorySnapshot(DateTimeOffset capturedAt, IReadOnlyDictionary<string, string> entries)
+        public enum ConfigProvenance
         {
-            CapturedAt = capturedAt;
-            Entries = entries ?? throw new ArgumentNullException(nameof(entries));
+            None,
+            Default,
+            LastKnownGood,
+            Remote
         }
 
-        public DateTimeOffset CapturedAt { get; }
+        public RepositorySnapshot(
+            string? configVersion,
+            int schemaVersion,
+            DateTimeOffset retrievedAtUtc,
+            ConfigProvenance provenance,
+            byte[]? rawBytes)
+        {
+            ConfigVersion = configVersion;
+            SchemaVersion = schemaVersion;
+            RetrievedAtUtc = retrievedAtUtc;
+            Provenance = provenance;
+            RawBytes = rawBytes;
+        }
 
-        public IReadOnlyDictionary<string, string> Entries { get; }
+        public string? ConfigVersion { get; }
+
+        public int SchemaVersion { get; }
+
+        public DateTimeOffset RetrievedAtUtc { get; }
+
+        public ConfigProvenance Provenance { get; }
+
+        public byte[]? RawBytes { get; }
     }
 }

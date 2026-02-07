@@ -1,3 +1,7 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace KBanakakis.Beacon.Repositories
 {
     /// <summary>
@@ -5,6 +9,23 @@ namespace KBanakakis.Beacon.Repositories
     /// </summary>
     public interface IConfigRepository
     {
-        RepositorySnapshot LoadSnapshot();
+        RepositorySnapshot GetSnapshot();
+
+        event Action<RepositorySnapshot> SnapshotChanged;
+
+        Task<RefreshResult> RefreshAsync(CancellationToken ct);
+    }
+
+    public readonly struct RefreshResult
+    {
+        public RefreshResult(bool changed, string? error)
+        {
+            Changed = changed;
+            Error = error;
+        }
+
+        public bool Changed { get; }
+
+        public string? Error { get; }
     }
 }
