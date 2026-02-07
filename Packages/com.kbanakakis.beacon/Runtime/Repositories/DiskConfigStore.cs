@@ -70,9 +70,11 @@ namespace KBanakakis.Beacon.Repositories
 
         public Task StoreAsync(StoredConfig stored, CancellationToken ct)
         {
-            if (stored.Bytes == null)
+            ct.ThrowIfCancellationRequested();
+
+            if (stored.Bytes == null || stored.Bytes.Length == 0)
             {
-                throw new ArgumentNullException(nameof(stored));
+                throw new ArgumentException("Stored config bytes must be non-empty.", nameof(stored));
             }
 
             Directory.CreateDirectory(_baseDirectory);
@@ -100,28 +102,75 @@ namespace KBanakakis.Beacon.Repositories
         private static void WriteAtomic(string destinationPath, byte[] payload)
         {
             var tempPath = destinationPath + ".tmp";
-            File.WriteAllBytes(tempPath, payload);
-            if (File.Exists(destinationPath))
+            try
             {
-                File.Replace(tempPath, destinationPath, null);
+                File.WriteAllBytes(tempPath, payload);
+                if (File.Exists(destinationPath))
+                {
+                    try
+                    {
+                        File.Replace(tempPath, destinationPath, null);
+                    }
+                    catch (PlatformNotSupportedException)
+                    {
+                        File.Delete(destinationPath);
+                        File.Move(tempPath, destinationPath);
+                    }
+                }
+                else
+                {
+                    File.Move(tempPath, destinationPath);
+                }
             }
-            else
+            finally
             {
-                File.Move(tempPath, destinationPath);
+                TryDeleteTemp(tempPath);
             }
         }
 
         private static void WriteAtomic(string destinationPath, string payload)
         {
             var tempPath = destinationPath + ".tmp";
-            File.WriteAllText(tempPath, payload);
-            if (File.Exists(destinationPath))
+            try
             {
-                File.Replace(tempPath, destinationPath, null);
+                File.WriteAllText(tempPath, payload);
+                if (File.Exists(destinationPath))
+                {
+                    try
+                    {
+                        File.Replace(tempPath, destinationPath, null);
+                    }
+                    catch (PlatformNotSupportedException)
+                    {
+                        File.Delete(destinationPath);
+                        File.Move(tempPath, destinationPath);
+                    }
+                }
+                else
+                {
+                    File.Move(tempPath, destinationPath);
+                }
             }
-            else
+            finally
             {
-                File.Move(tempPath, destinationPath);
+                TryDeleteTemp(tempPath);
+            }
+        }
+
+        private static void TryDeleteTemp(string tempPath)
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch (IOException)
+            {
+            }
+            catch (UnauthorizedAccessException)
+            {
             }
         }
     }
