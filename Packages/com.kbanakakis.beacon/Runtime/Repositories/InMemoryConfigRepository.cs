@@ -30,7 +30,7 @@ namespace KBanakakis.Beacon.Repositories
 
         public void SetSnapshotForTests(RepositorySnapshot snapshot)
         {
-            _snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
+            _snapshot = snapshot;
             SnapshotChanged?.Invoke(_snapshot);
         }
     }
