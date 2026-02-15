@@ -11,53 +11,61 @@ namespace KBanakakis.Beacon.Samples.Demo
 
         private BeaconClient _client;
 
-        private void Awake()
-        {
-            if (installer == null)
-            {
-                installer = BeaconInstaller.Instance;
-            }
-
-            _client = installer != null ? installer.Client : null;
-
-        }
         private void Start()
         {
-            EnsureClient();
+            if (installer == null)
+                installer = BeaconInstaller.Instance;
+
+            if (installer != null)
+            {
+                installer.ClientReady += OnClientReady;
+
+                // Bind immediately if already created.
+                if (installer.Client != null)
+                    OnClientReady(installer.Client);
+            }
+
+            ApplyFlag();
+        }
+
+        private void OnDestroy()
+        {
+            if (installer != null)
+                installer.ClientReady -= OnClientReady;
+
+            if (_client != null)
+                _client.SnapshotChanged -= OnSnapshotChanged;
+        }
+
+        private void OnClientReady(BeaconClient client)
+        {
+            if (_client == client)
+            {
+                ApplyFlag();
+                return;
+            }
+
+            if (_client != null)
+                _client.SnapshotChanged -= OnSnapshotChanged;
+
+            _client = client;
+
             if (_client != null)
                 _client.SnapshotChanged += OnSnapshotChanged;
 
             ApplyFlag();
         }
 
-        private void EnsureClient()
-        {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
-
-            if (_client == null && installer != null)
-                _client = installer.Client;
-        }
-
-        private void OnDestroy()
-        {
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-        }
-
         private void OnSnapshotChanged(RepositorySnapshot _)
         {
             ApplyFlag();
         }
-        
+
         private void ApplyFlag()
         {
             if (target == null)
-            {
                 return;
-            }
-            
-            EnsureClient();
+
             if (_client == null || string.IsNullOrWhiteSpace(flagKey))
             {
                 target.SetActive(false);
