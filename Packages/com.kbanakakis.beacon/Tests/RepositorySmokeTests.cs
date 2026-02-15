@@ -2,6 +2,8 @@ using System;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using KBanakakis.Beacon.Context;
+using KBanakakis.Beacon.Evaluation;
 using KBanakakis.Beacon.Repositories;
 using NUnit.Framework;
 
@@ -19,7 +21,7 @@ namespace KBanakakis.Beacon.Tests
                 RepositorySnapshot.ConfigProvenance.Default,
                 null);
             var repository = new InMemoryConfigRepository(snapshot);
-            var client = new BeaconClient(repository);
+            var client = new BeaconClient(repository, new StubContextProvider(), new JsonFlagEvaluator());
 
             var result = client.GetSnapshot();
 
@@ -36,7 +38,7 @@ namespace KBanakakis.Beacon.Tests
                 RepositorySnapshot.ConfigProvenance.Default,
                 null);
             var repository = new InMemoryConfigRepository(snapshot);
-            var client = new BeaconClient(repository);
+            var client = new BeaconClient(repository, new StubContextProvider(), new JsonFlagEvaluator());
             var wasCalled = false;
 
             client.SnapshotChanged += _ => wasCalled = true;
@@ -70,6 +72,14 @@ namespace KBanakakis.Beacon.Tests
             var snapshot = repository.GetSnapshot();
             Assert.AreEqual("1.2.3", snapshot.ConfigVersion);
             Assert.AreEqual(2, snapshot.SchemaVersion);
+        }
+
+        private sealed class StubContextProvider : IContextProvider
+        {
+            public BeaconContext GetContext()
+            {
+                return new BeaconContext("install", "Standalone", "1.0.0");
+            }
         }
 
         private sealed class FakeConfigSource : IConfigSource
