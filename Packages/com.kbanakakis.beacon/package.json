@@ -9,9 +9,10 @@
     "name": "KBanakakis"
   },
   "samples": [
-  {
+    {
       "displayName": "Beacon Demo",
       "description": "Sample scene demonstrating runtime configuration and feature flags.",
       "path": "Samples~/Demo"
-  }
+    }
+  ]
 }

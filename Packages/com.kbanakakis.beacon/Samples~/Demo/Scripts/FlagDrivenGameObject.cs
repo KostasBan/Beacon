@@ -19,43 +19,45 @@ namespace KBanakakis.Beacon.Samples.Demo
             }
 
             _client = installer != null ? installer.Client : null;
-        }
 
-        private void OnEnable()
+        }
+        private void Start()
         {
+            EnsureClient();
             if (_client != null)
-            {
                 _client.SnapshotChanged += OnSnapshotChanged;
-            }
 
             ApplyFlag();
         }
 
-        private void OnDisable()
+        private void EnsureClient()
+        {
+            if (installer == null)
+                installer = BeaconInstaller.Instance;
+
+            if (_client == null && installer != null)
+                _client = installer.Client;
+        }
+
+        private void OnDestroy()
         {
             if (_client != null)
-            {
                 _client.SnapshotChanged -= OnSnapshotChanged;
-            }
         }
 
         private void OnSnapshotChanged(RepositorySnapshot _)
         {
             ApplyFlag();
         }
-
-        private void Start()
-        {
-            ApplyFlag();
-        }
-
+        
         private void ApplyFlag()
         {
             if (target == null)
             {
                 return;
             }
-
+            
+            EnsureClient();
             if (_client == null || string.IsNullOrWhiteSpace(flagKey))
             {
                 target.SetActive(false);
