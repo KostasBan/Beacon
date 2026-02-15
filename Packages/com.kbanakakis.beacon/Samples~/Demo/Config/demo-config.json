@@ -1,0 +1,11 @@
+{
+  "meta": {
+    "schemaVersion": 1,
+    "configVersion": "demo-1"
+  },
+  "flags": {
+    "new_home_ui": {
+      "enabled": true
+    }
+  }
+}
