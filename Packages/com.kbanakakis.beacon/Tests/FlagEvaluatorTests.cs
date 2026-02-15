@@ -39,6 +39,17 @@ namespace KBanakakis.Beacon.Tests
             Assert.AreEqual(first, second);
         }
 
+
+        [Test]
+        public void InvalidRolloutPercentDisablesFlag()
+        {
+            var json = "{\"flags\":{\"featureA\":{\"enabled\":true,\"rolloutPercent\":\"ten\"}}}";
+
+            var result = Evaluate(json, new BeaconContext("id", "Android", "1.0.0"), "featureA", true);
+
+            Assert.IsFalse(result);
+        }
+
         [Test]
         public void PlatformTargetingWorks()
         {
@@ -63,6 +74,16 @@ namespace KBanakakis.Beacon.Tests
             Assert.IsFalse(oldVersion);
             Assert.IsTrue(exactVersion);
             Assert.IsTrue(newVersion);
+        }
+
+        [Test]
+        public void MinAppVersionWithSuffixesWorks()
+        {
+            var json = "{\"flags\":{\"featureA\":{\"enabled\":true,\"targets\":{\"minAppVersion\":\"1.2.3\"}}}}";
+
+            var result = Evaluate(json, new BeaconContext("id", "Android", "1.2.3+45"), "featureA", false);
+
+            Assert.IsTrue(result);
         }
 
         private bool Evaluate(string json, BeaconContext context, string flagKey, bool defaultValue)

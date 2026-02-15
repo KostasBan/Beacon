@@ -35,7 +35,24 @@ namespace KBanakakis.Beacon.Evaluation
                 return 0;
             }
 
-            return int.TryParse(parts[index], out var value) ? value : 0;
+            var part = parts[index];
+            if (string.IsNullOrEmpty(part))
+            {
+                return 0;
+            }
+
+            var end = 0;
+            while (end < part.Length && char.IsDigit(part[end]))
+            {
+                end++;
+            }
+
+            if (end == 0)
+            {
+                return 0;
+            }
+
+            return int.TryParse(part.Substring(0, end), out var value) ? value : 0;
         }
     }
 }

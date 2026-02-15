@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
+using System.Text;
 using KBanakakis.Beacon.Context;
 
 namespace KBanakakis.Beacon.Evaluation
 {
     public sealed class JsonFlagEvaluator : IFlagEvaluator
     {
+        private static readonly UTF8Encoding StrictUtf8 = new UTF8Encoding(false, true);
+
         public bool IsEnabled(byte[] configBytes, BeaconContext ctx, string flagKey, bool defaultValue)
         {
             if (configBytes == null || string.IsNullOrEmpty(flagKey))
@@ -14,172 +16,159 @@ namespace KBanakakis.Beacon.Evaluation
                 return defaultValue;
             }
 
+            string json;
             try
             {
-                using var doc = JsonDocument.Parse(configBytes);
-                var root = doc.RootElement;
-
-                if (IsKilled(root, flagKey))
-                {
-                    return false;
-                }
-
-                if (!TryGetFlag(root, flagKey, out var flag))
-                {
-                    return defaultValue;
-                }
-
-                if (!GetBool(flag, "enabled", false))
-                {
-                    return false;
-                }
-
-                if (!PassesPlatform(flag, ctx.Platform) || !PassesMinVersion(flag, ctx.AppVersion))
-                {
-                    return false;
-                }
-
-                if (TryGetInt(flag, "rolloutPercent", out var rolloutPercent))
-                {
-                    rolloutPercent = Math.Clamp(rolloutPercent, 0, 100);
-                    var salt = GetString(flag, "salt") ?? string.Empty;
-                    var input = $"{ctx.InstallId}:{flagKey}:{salt}";
-                    return StableBucketer.GetBucket0To99(input) < rolloutPercent;
-                }
-
-                return true;
+                json = StrictUtf8.GetString(configBytes);
             }
             catch
             {
                 return defaultValue;
             }
-        }
 
-        private static bool IsKilled(JsonElement root, string flagKey)
-        {
-            if (!TryGetObject(root, "safety", out var safety))
-            {
-                return false;
-            }
-
-            if (!GetBool(safety, "killAllExperiments", false))
-            {
-                return false;
-            }
-
-            if (!TryGetStringArray(safety, "allowlistFlagsWhenKilled", out var allowlist))
-            {
-                return true;
-            }
-
-            return !allowlist.Contains(flagKey);
-        }
-
-        private static bool TryGetFlag(JsonElement root, string flagKey, out JsonElement flag)
-        {
-            flag = default;
-            if (!TryGetObject(root, "flags", out var flags))
-            {
-                return false;
-            }
-
-            if (flags.ValueKind != JsonValueKind.Object || !flags.TryGetProperty(flagKey, out flag))
-            {
-                return false;
-            }
-
-            return flag.ValueKind == JsonValueKind.Object;
-        }
-
-        private static bool PassesPlatform(JsonElement flag, string platform)
-        {
-            if (!TryGetObject(flag, "targets", out var targets))
-            {
-                return true;
-            }
-
-            if (!TryGetStringArray(targets, "platforms", out var platforms))
-            {
-                return true;
-            }
-
-            return platforms.Contains(platform);
-        }
-
-        private static bool PassesMinVersion(JsonElement flag, string appVersion)
-        {
-            if (!TryGetObject(flag, "targets", out var targets))
-            {
-                return true;
-            }
-
-            var minVersion = GetString(targets, "minAppVersion");
-            if (string.IsNullOrEmpty(minVersion))
-            {
-                return true;
-            }
-
-            return VersionComparer.Compare(appVersion, minVersion) >= 0;
-        }
-
-        private static bool TryGetObject(JsonElement element, string name, out JsonElement obj)
-        {
-            obj = default;
-            return element.ValueKind == JsonValueKind.Object &&
-                   element.TryGetProperty(name, out obj) &&
-                   obj.ValueKind == JsonValueKind.Object;
-        }
-
-        private static bool GetBool(JsonElement element, string name, bool defaultValue)
-        {
-            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out var value))
+            if (!JsonLite.IsValidObjectJson(json))
             {
                 return defaultValue;
             }
 
-            return value.ValueKind == JsonValueKind.True ||
-                   (value.ValueKind != JsonValueKind.False && defaultValue);
-        }
-
-        private static bool TryGetInt(JsonElement element, string name, out int value)
-        {
-            value = 0;
-            return element.ValueKind == JsonValueKind.Object &&
-                   element.TryGetProperty(name, out var jsonValue) &&
-                   jsonValue.TryGetInt32(out value);
-        }
-
-        private static string GetString(JsonElement element, string name)
-        {
-            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out var value))
+            if (!TryEvaluateKillState(json, flagKey, out var isKilled))
             {
-                return null;
+                return defaultValue;
             }
 
-            return value.ValueKind == JsonValueKind.String ? value.GetString() : null;
-        }
-
-        private static bool TryGetStringArray(JsonElement element, string name, out HashSet<string> result)
-        {
-            result = null;
-            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Array)
+            if (isKilled)
             {
                 return false;
             }
 
-            result = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var item in value.EnumerateArray())
+            if (!JsonLite.TryExtractObject(json, "flags", out var flagsJson, out var flagsPresent))
             {
-                if (item.ValueKind == JsonValueKind.String)
-                {
-                    var str = item.GetString();
-                    if (!string.IsNullOrEmpty(str))
-                    {
-                        result.Add(str);
-                    }
-                }
+                return defaultValue;
             }
 
+            if (!flagsPresent)
+            {
+                return defaultValue;
+            }
+
+            if (!JsonLite.TryExtractObject(flagsJson, flagKey, out var flagJson, out var flagPresent))
+            {
+                return defaultValue;
+            }
+
+            if (!flagPresent)
+            {
+                return defaultValue;
+            }
+
+            return EvaluateFlag(flagJson, ctx, flagKey);
+        }
+
+        private static bool EvaluateFlag(string flagJson, BeaconContext ctx, string flagKey)
+        {
+            if (!JsonLite.TryExtractBool(flagJson, "enabled", out var enabled, out var enabledPresent) ||
+                !enabledPresent ||
+                !enabled)
+            {
+                return false;
+            }
+
+            if (!PassesTargets(flagJson, ctx))
+            {
+                return false;
+            }
+
+            if (!JsonLite.TryExtractInt(flagJson, "rolloutPercent", out var rolloutPercent, out var rolloutPresent))
+            {
+                return false;
+            }
+
+            if (!rolloutPresent)
+            {
+                return true;
+            }
+
+            rolloutPercent = Math.Clamp(rolloutPercent, 0, 100);
+
+            if (!JsonLite.TryExtractString(flagJson, "salt", out var salt, out var saltPresent))
+            {
+                return false;
+            }
+
+            if (!saltPresent)
+            {
+                salt = string.Empty;
+            }
+
+            var input = $"{ctx.InstallId}:{flagKey}:{salt}";
+            return StableBucketer.GetBucket0To99(input) < rolloutPercent;
+        }
+
+        private static bool PassesTargets(string flagJson, BeaconContext ctx)
+        {
+            if (!JsonLite.TryExtractObject(flagJson, "targets", out var targetsJson, out var targetsPresent))
+            {
+                return false;
+            }
+
+            if (!targetsPresent)
+            {
+                return true;
+            }
+
+            if (!JsonLite.TryExtractStringArray(targetsJson, "platforms", out var platforms, out var platformsPresent))
+            {
+                return false;
+            }
+
+            if (platformsPresent && (platforms == null || !platforms.Contains(ctx.Platform)))
+            {
+                return false;
+            }
+
+            if (!JsonLite.TryExtractString(targetsJson, "minAppVersion", out var minVersion, out var minVersionPresent))
+            {
+                return false;
+            }
+
+            if (minVersionPresent && VersionComparer.Compare(ctx.AppVersion, minVersion) < 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryEvaluateKillState(string json, string flagKey, out bool isKilled)
+        {
+            isKilled = false;
+            if (!JsonLite.TryExtractObject(json, "safety", out var safetyJson, out var safetyPresent))
+            {
+                return false;
+            }
+
+            if (!safetyPresent)
+            {
+                return true;
+            }
+
+            if (!JsonLite.TryExtractBool(safetyJson, "killAllExperiments", out var killed, out var killedPresent))
+            {
+                return false;
+            }
+
+            if (!killedPresent || !killed)
+            {
+                return true;
+            }
+
+            var allowlist = new HashSet<string>(StringComparer.Ordinal);
+            if (JsonLite.TryExtractStringArray(safetyJson, "allowlistFlagsWhenKilled", out var parsedAllowlist, out var allowlistPresent) && allowlistPresent)
+            {
+                allowlist = parsedAllowlist ?? allowlist;
+            }
+
+            isKilled = !allowlist.Contains(flagKey);
             return true;
         }
     }
