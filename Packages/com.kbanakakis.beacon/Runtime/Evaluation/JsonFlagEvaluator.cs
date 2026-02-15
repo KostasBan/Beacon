@@ -46,7 +46,7 @@ namespace KBanakakis.Beacon.Evaluation
                 return defaultValue;
             }
 
-            if (!flagsPresent)
+            if (!flagsPresent || flagsJson == null)
             {
                 return defaultValue;
             }
@@ -56,7 +56,7 @@ namespace KBanakakis.Beacon.Evaluation
                 return defaultValue;
             }
 
-            if (!flagPresent)
+            if (!flagPresent || flagJson == null)
             {
                 return defaultValue;
             }
@@ -116,6 +116,11 @@ namespace KBanakakis.Beacon.Evaluation
                 return true;
             }
 
+            if (targetsJson == null)
+            {
+                return false;
+            }
+
             if (!JsonLite.TryExtractStringArray(targetsJson, "platforms", out var platforms, out var platformsPresent))
             {
                 return false;
@@ -131,7 +136,7 @@ namespace KBanakakis.Beacon.Evaluation
                 return false;
             }
 
-            if (minVersionPresent && VersionComparer.Compare(ctx.AppVersion, minVersion) < 0)
+            if (minVersionPresent && minVersion != null && VersionComparer.Compare(ctx.AppVersion, minVersion) < 0)
             {
                 return false;
             }
@@ -152,6 +157,11 @@ namespace KBanakakis.Beacon.Evaluation
                 return true;
             }
 
+            if (safetyJson == null)
+            {
+                return false;
+            }
+
             if (!JsonLite.TryExtractBool(safetyJson, "killAllExperiments", out var killed, out var killedPresent))
             {
                 return false;
@@ -163,9 +173,9 @@ namespace KBanakakis.Beacon.Evaluation
             }
 
             var allowlist = new HashSet<string>(StringComparer.Ordinal);
-            if (JsonLite.TryExtractStringArray(safetyJson, "allowlistFlagsWhenKilled", out var parsedAllowlist, out var allowlistPresent) && allowlistPresent)
+            if (JsonLite.TryExtractStringArray(safetyJson, "allowlistFlagsWhenKilled", out var parsedAllowlist, out var allowlistPresent) && allowlistPresent && parsedAllowlist != null)
             {
-                allowlist = parsedAllowlist ?? allowlist;
+                allowlist = parsedAllowlist;
             }
 
             isKilled = !allowlist.Contains(flagKey);

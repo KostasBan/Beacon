@@ -29,7 +29,7 @@ namespace KBanakakis.Beacon.Evaluation
             return i == json.Length;
         }
 
-        public static bool TryExtractObject(string json, string propertyName, out string objectJsonSubstring)
+        public static bool TryExtractObject(string json, string propertyName, out string? objectJsonSubstring)
         {
             if (!TryExtractObject(json, propertyName, out objectJsonSubstring, out var present))
             {
@@ -39,7 +39,7 @@ namespace KBanakakis.Beacon.Evaluation
             return present;
         }
 
-        public static bool TryExtractObject(string json, string propertyName, out string objectJsonSubstring, out bool present)
+        public static bool TryExtractObject(string json, string propertyName, out string? objectJsonSubstring, out bool present)
         {
             objectJsonSubstring = null;
             if (!TryFindPropertyValueRange(json, propertyName, out var start, out var endExclusive, out present))
@@ -107,7 +107,7 @@ namespace KBanakakis.Beacon.Evaluation
             return int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
         }
 
-        public static bool TryExtractString(string json, string propertyName, out string value, out bool present)
+        public static bool TryExtractString(string json, string propertyName, out string? value, out bool present)
         {
             value = null;
             if (!TryFindPropertyValueRange(json, propertyName, out var start, out var endExclusive, out present))
@@ -134,7 +134,7 @@ namespace KBanakakis.Beacon.Evaluation
             return i == endExclusive;
         }
 
-        public static bool TryExtractStringArray(string json, string propertyName, out HashSet<string> values, out bool present)
+        public static bool TryExtractStringArray(string json, string propertyName, out HashSet<string>? values, out bool present)
         {
             values = null;
             if (!TryFindPropertyValueRange(json, propertyName, out var start, out var endExclusive, out present))
@@ -400,7 +400,7 @@ namespace KBanakakis.Beacon.Evaluation
             return false;
         }
 
-        private static bool TryReadString(string json, ref int index, out string value)
+        private static bool TryReadString(string json, ref int index, out string? value)
         {
             value = null;
             if (index >= json.Length || json[index] != '"')
