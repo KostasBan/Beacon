@@ -107,6 +107,23 @@ namespace KBanakakis.Beacon.Evaluation
             return int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
         }
 
+        public static bool TryExtractFloat(string json, string propertyName, out float value, out bool present)
+        {
+            value = 0f;
+            if (!TryFindPropertyValueRange(json, propertyName, out var start, out var endExclusive, out present))
+            {
+                return false;
+            }
+
+            if (!present)
+            {
+                return true;
+            }
+
+            var token = json.Substring(start, endExclusive - start);
+            return float.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        }
+
         public static bool TryExtractString(string json, string propertyName, out string? value, out bool present)
         {
             value = null;
