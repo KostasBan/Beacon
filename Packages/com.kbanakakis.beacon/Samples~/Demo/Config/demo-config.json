@@ -1,0 +1,7 @@
+{
+  "meta": { "schemaVersion": 1, "configVersion": "demo-1" },
+  "safety": { "killAllExperiments": false, "allowlistFlagsWhenKilled": [] },
+  "flags": {
+    "new_home_ui": { "enabled": true, "rolloutPercent": 100, "salt": "demo" }
+  }
+}
