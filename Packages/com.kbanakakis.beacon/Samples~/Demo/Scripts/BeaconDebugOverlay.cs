@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Text;
 using System.Threading;
 using UnityEngine;
@@ -14,65 +15,44 @@ namespace KBanakakis.Beacon.Samples.Demo
         [SerializeField] private BeaconInstaller installer;
         [SerializeField] private TMP_Text overlayText;
         [SerializeField] private Button refreshButton;
+        [SerializeField, Min(1)] private int installerLookupMaxFrames = 60;
 
         private DefaultContextProvider _contextProvider;
         private BeaconClient _client;
+        private Coroutine _bindRoutine;
         private string _lastRefreshResult = "Not refreshed yet";
+        private bool _warnedMissingInstaller;
 
         private void OnEnable()
         {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
-
-            if (installer != null)
-            {
-                installer.ClientReady += OnClientReady;
-
-                // Bind immediately if client already exists.
-                if (installer.Client != null)
-                    OnClientReady(installer.Client);
-
-                _contextProvider = installer.ContextProvider;
-            }
+            StartBindFlow();
 
             if (refreshButton != null)
+            {
+                refreshButton.onClick.RemoveListener(OnRefreshClicked);
                 refreshButton.onClick.AddListener(OnRefreshClicked);
+            }
 
             Render();
         }
 
         private void OnDisable()
         {
+            StopBindRoutine();
+
             if (refreshButton != null)
                 refreshButton.onClick.RemoveListener(OnRefreshClicked);
 
             if (installer != null)
                 installer.ClientReady -= OnClientReady;
 
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
+            UnbindClient();
         }
 
         private void OnClientReady(BeaconClient client)
         {
-            if (_client == client)
-            {
-                // Already bound.
-                Render();
-                return;
-            }
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-
-            _client = client;
-
-            if (_client != null)
-                _client.SnapshotChanged += OnSnapshotChanged;
-
-            // Installer should be set in OnEnable, but guard anyway.
             _contextProvider = installer != null ? installer.ContextProvider : null;
-
+            BindClient(client);
             Render();
         }
 
@@ -103,6 +83,93 @@ namespace KBanakakis.Beacon.Samples.Demo
             }
 
             Render();
+        }
+
+        private void StartBindFlow()
+        {
+            StopBindRoutine();
+            EnsureInstaller();
+
+            if (HookInstallerAndBindIfReady())
+                return;
+
+            _bindRoutine = StartCoroutine(BindWhenInstallerReady());
+        }
+
+        private IEnumerator BindWhenInstallerReady()
+        {
+            for (var frame = 0; frame < installerLookupMaxFrames && installer == null; frame++)
+            {
+                EnsureInstaller();
+                if (HookInstallerAndBindIfReady())
+                {
+                    _bindRoutine = null;
+                    Render();
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            if (!_warnedMissingInstaller)
+            {
+                _warnedMissingInstaller = true;
+                Debug.LogWarning($"[BeaconDemo] {nameof(BeaconDebugOverlay)} could not find {nameof(BeaconInstaller)} after {installerLookupMaxFrames} frames.");
+            }
+
+            _bindRoutine = null;
+            Render();
+        }
+
+        private void StopBindRoutine()
+        {
+            if (_bindRoutine == null)
+                return;
+
+            StopCoroutine(_bindRoutine);
+            _bindRoutine = null;
+        }
+
+        private void EnsureInstaller()
+        {
+            if (installer == null)
+                installer = BeaconInstaller.Instance;
+        }
+
+        private bool HookInstallerAndBindIfReady()
+        {
+            if (installer == null)
+                return false;
+
+            installer.ClientReady -= OnClientReady;
+            installer.ClientReady += OnClientReady;
+            _contextProvider = installer.ContextProvider;
+
+            if (installer.Client != null)
+                BindClient(installer.Client);
+
+            return true;
+        }
+
+        private void BindClient(BeaconClient client)
+        {
+            if (_client == client)
+                return;
+
+            UnbindClient();
+            _client = client;
+
+            if (_client != null)
+                _client.SnapshotChanged += OnSnapshotChanged;
+        }
+
+        private void UnbindClient()
+        {
+            if (_client == null)
+                return;
+
+            _client.SnapshotChanged -= OnSnapshotChanged;
+            _client = null;
         }
 
         private void Render()
