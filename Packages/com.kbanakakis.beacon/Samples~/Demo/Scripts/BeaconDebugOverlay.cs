@@ -21,22 +21,24 @@ namespace KBanakakis.Beacon.Samples.Demo
 
         private void OnEnable()
         {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
+            EnsureInstaller();
 
             if (installer != null)
             {
+                installer.ClientReady -= OnClientReady;
                 installer.ClientReady += OnClientReady;
 
-                // Bind immediately if client already exists.
-                if (installer.Client != null)
-                    OnClientReady(installer.Client);
-
                 _contextProvider = installer.ContextProvider;
+
+                if (installer.Client != null)
+                    BindClient(installer.Client);
             }
 
             if (refreshButton != null)
+            {
+                refreshButton.onClick.RemoveListener(OnRefreshClicked);
                 refreshButton.onClick.AddListener(OnRefreshClicked);
+            }
 
             Render();
         }
@@ -49,30 +51,13 @@ namespace KBanakakis.Beacon.Samples.Demo
             if (installer != null)
                 installer.ClientReady -= OnClientReady;
 
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
+            UnbindClient();
         }
 
         private void OnClientReady(BeaconClient client)
         {
-            if (_client == client)
-            {
-                // Already bound.
-                Render();
-                return;
-            }
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-
-            _client = client;
-
-            if (_client != null)
-                _client.SnapshotChanged += OnSnapshotChanged;
-
-            // Installer should be set in OnEnable, but guard anyway.
             _contextProvider = installer != null ? installer.ContextProvider : null;
-
+            BindClient(client);
             Render();
         }
 
@@ -103,6 +88,33 @@ namespace KBanakakis.Beacon.Samples.Demo
             }
 
             Render();
+        }
+
+        private void EnsureInstaller()
+        {
+            if (installer == null)
+                installer = BeaconInstaller.Instance;
+        }
+
+        private void BindClient(BeaconClient client)
+        {
+            if (_client == client)
+                return;
+
+            UnbindClient();
+            _client = client;
+
+            if (_client != null)
+                _client.SnapshotChanged += OnSnapshotChanged;
+        }
+
+        private void UnbindClient()
+        {
+            if (_client == null)
+                return;
+
+            _client.SnapshotChanged -= OnSnapshotChanged;
+            _client = null;
         }
 
         private void Render()

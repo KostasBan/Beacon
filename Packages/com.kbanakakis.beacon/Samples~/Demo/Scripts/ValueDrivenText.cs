@@ -13,53 +13,66 @@ namespace KBanakakis.Beacon.Samples.Demo
 
         private BeaconClient _client;
 
-        private void Start()
+        private void OnEnable()
         {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
+            EnsureInstaller();
 
             if (installer != null)
             {
+                installer.ClientReady -= OnClientReady;
                 installer.ClientReady += OnClientReady;
 
                 if (installer.Client != null)
-                    OnClientReady(installer.Client);
+                    BindClient(installer.Client);
             }
 
             ApplyValue();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             if (installer != null)
                 installer.ClientReady -= OnClientReady;
 
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
+            UnbindClient();
         }
 
         private void OnClientReady(BeaconClient client)
         {
-            if (_client == client)
-            {
-                ApplyValue();
-                return;
-            }
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-
-            _client = client;
-
-            if (_client != null)
-                _client.SnapshotChanged += OnSnapshotChanged;
-
+            BindClient(client);
             ApplyValue();
         }
 
         private void OnSnapshotChanged(RepositorySnapshot _)
         {
             ApplyValue();
+        }
+
+        private void EnsureInstaller()
+        {
+            if (installer == null)
+                installer = BeaconInstaller.Instance;
+        }
+
+        private void BindClient(BeaconClient client)
+        {
+            if (_client == client)
+                return;
+
+            UnbindClient();
+            _client = client;
+
+            if (_client != null)
+                _client.SnapshotChanged += OnSnapshotChanged;
+        }
+
+        private void UnbindClient()
+        {
+            if (_client == null)
+                return;
+
+            _client.SnapshotChanged -= OnSnapshotChanged;
+            _client = null;
         }
 
         private void ApplyValue()

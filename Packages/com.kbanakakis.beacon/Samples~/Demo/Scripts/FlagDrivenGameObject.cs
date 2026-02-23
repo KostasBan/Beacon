@@ -10,49 +10,35 @@ namespace KBanakakis.Beacon.Samples.Demo
         [SerializeField] private GameObject target;
 
         private BeaconClient _client;
+        private bool _warnedAboutSelfTarget;
 
-        private void Start()
+        private void OnEnable()
         {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
+            EnsureInstaller();
 
             if (installer != null)
             {
+                installer.ClientReady -= OnClientReady;
                 installer.ClientReady += OnClientReady;
 
-                // Bind immediately if already created.
                 if (installer.Client != null)
-                    OnClientReady(installer.Client);
+                    BindClient(installer.Client);
             }
 
             ApplyFlag();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             if (installer != null)
                 installer.ClientReady -= OnClientReady;
 
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
+            UnbindClient();
         }
 
         private void OnClientReady(BeaconClient client)
         {
-            if (_client == client)
-            {
-                ApplyFlag();
-                return;
-            }
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-
-            _client = client;
-
-            if (_client != null)
-                _client.SnapshotChanged += OnSnapshotChanged;
-
+            BindClient(client);
             ApplyFlag();
         }
 
@@ -61,18 +47,56 @@ namespace KBanakakis.Beacon.Samples.Demo
             ApplyFlag();
         }
 
+        private void EnsureInstaller()
+        {
+            if (installer == null)
+                installer = BeaconInstaller.Instance;
+        }
+
+        private void BindClient(BeaconClient client)
+        {
+            if (_client == client)
+                return;
+
+            UnbindClient();
+            _client = client;
+
+            if (_client != null)
+                _client.SnapshotChanged += OnSnapshotChanged;
+        }
+
+        private void UnbindClient()
+        {
+            if (_client == null)
+                return;
+
+            _client.SnapshotChanged -= OnSnapshotChanged;
+            _client = null;
+        }
+
         private void ApplyFlag()
         {
             if (target == null)
                 return;
 
-            if (_client == null || string.IsNullOrWhiteSpace(flagKey))
+            var shouldBeActive = _client != null
+                && !string.IsNullOrWhiteSpace(flagKey)
+                && _client.IsEnabled(flagKey);
+
+            if (ReferenceEquals(target, gameObject) && !shouldBeActive)
             {
-                target.SetActive(false);
+                if (!_warnedAboutSelfTarget)
+                {
+                    _warnedAboutSelfTarget = true;
+                    Debug.LogWarning("[BeaconDemo] FlagDrivenGameObject target is the same GameObject as this component. " +
+                                     "Attach this script to an always-active GameObject (for example DemoRoot) to avoid lifecycle issues.");
+                }
+
                 return;
             }
 
-            target.SetActive(_client.IsEnabled(flagKey));
+            if (target.activeSelf != shouldBeActive)
+                target.SetActive(shouldBeActive);
         }
     }
 }
