@@ -1,5 +1,6 @@
-using UnityEngine;
 using KBanakakis.Beacon.Repositories;
+using KBanakakis.Beacon.Unity;
+using UnityEngine;
 
 namespace KBanakakis.Beacon.Samples.Demo
 {
@@ -8,57 +9,37 @@ namespace KBanakakis.Beacon.Samples.Demo
         [SerializeField] private BeaconInstaller installer;
         [SerializeField] private string flagKey = "new_home_ui";
         [SerializeField] private GameObject target;
+        [SerializeField, Min(1)] private int installerLookupMaxFrames = 60;
 
+        private readonly MonoBehaviourClientBinder _binder = new MonoBehaviourClientBinder();
         private BeaconClient _client;
+        private bool _warnedAboutSelfTarget;
 
-        private void Start()
+        private void OnEnable()
         {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
-
-            if (installer != null)
-            {
-                installer.ClientReady += OnClientReady;
-
-                // Bind immediately if already created.
-                if (installer.Client != null)
-                    OnClientReady(installer.Client);
-            }
+            _binder.Start(
+                this,
+                () => installer ?? BeaconInstaller.Instance,
+                installerLookupMaxFrames,
+                inst => inst.Client,
+                (inst, callback) => inst.ClientReady += callback,
+                (inst, callback) => inst.ClientReady -= callback,
+                inst => installer = inst,
+                client =>
+                {
+                    _client = client;
+                    ApplyFlag();
+                },
+                _ => ApplyFlag(),
+                message => Debug.LogWarning($"[BeaconDemo] {message}"));
 
             ApplyFlag();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
-            if (installer != null)
-                installer.ClientReady -= OnClientReady;
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-        }
-
-        private void OnClientReady(BeaconClient client)
-        {
-            if (_client == client)
-            {
-                ApplyFlag();
-                return;
-            }
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-
-            _client = client;
-
-            if (_client != null)
-                _client.SnapshotChanged += OnSnapshotChanged;
-
-            ApplyFlag();
-        }
-
-        private void OnSnapshotChanged(RepositorySnapshot _)
-        {
-            ApplyFlag();
+            _binder.Stop();
+            _client = null;
         }
 
         private void ApplyFlag()
@@ -66,13 +47,24 @@ namespace KBanakakis.Beacon.Samples.Demo
             if (target == null)
                 return;
 
-            if (_client == null || string.IsNullOrWhiteSpace(flagKey))
+            var shouldBeActive = _client != null
+                && !string.IsNullOrWhiteSpace(flagKey)
+                && _client.IsEnabled(flagKey);
+
+            if (ReferenceEquals(target, gameObject) && !shouldBeActive)
             {
-                target.SetActive(false);
+                if (!_warnedAboutSelfTarget)
+                {
+                    _warnedAboutSelfTarget = true;
+                    Debug.LogWarning("[BeaconDemo] FlagDrivenGameObject target is the same GameObject as this component. " +
+                                     "Attach this script to an always-active GameObject (for example DemoRoot) to avoid lifecycle issues.");
+                }
+
                 return;
             }
 
-            target.SetActive(_client.IsEnabled(flagKey));
+            if (target.activeSelf != shouldBeActive)
+                target.SetActive(shouldBeActive);
         }
     }
 }

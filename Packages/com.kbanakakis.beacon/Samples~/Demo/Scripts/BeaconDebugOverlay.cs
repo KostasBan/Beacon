@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using KBanakakis.Beacon.Context;
 using KBanakakis.Beacon.Repositories;
+using KBanakakis.Beacon.Unity;
 using TMPro;
 
 namespace KBanakakis.Beacon.Samples.Demo
@@ -14,29 +15,40 @@ namespace KBanakakis.Beacon.Samples.Demo
         [SerializeField] private BeaconInstaller installer;
         [SerializeField] private TMP_Text overlayText;
         [SerializeField] private Button refreshButton;
+        [SerializeField, Min(1)] private int installerLookupMaxFrames = 60;
 
+        private readonly MonoBehaviourClientBinder _binder = new MonoBehaviourClientBinder();
         private DefaultContextProvider _contextProvider;
         private BeaconClient _client;
         private string _lastRefreshResult = "Not refreshed yet";
 
         private void OnEnable()
         {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
-
-            if (installer != null)
-            {
-                installer.ClientReady += OnClientReady;
-
-                // Bind immediately if client already exists.
-                if (installer.Client != null)
-                    OnClientReady(installer.Client);
-
-                _contextProvider = installer.ContextProvider;
-            }
+            _binder.Start(
+                this,
+                () => installer ?? BeaconInstaller.Instance,
+                installerLookupMaxFrames,
+                inst => inst.Client,
+                (inst, callback) => inst.ClientReady += callback,
+                (inst, callback) => inst.ClientReady -= callback,
+                inst =>
+                {
+                    installer = inst;
+                    _contextProvider = inst.ContextProvider;
+                },
+                client =>
+                {
+                    _client = client;
+                    Render();
+                },
+                _ => Render(),
+                message => Debug.LogWarning($"[BeaconDemo] {message}"));
 
             if (refreshButton != null)
+            {
+                refreshButton.onClick.RemoveListener(OnRefreshClicked);
                 refreshButton.onClick.AddListener(OnRefreshClicked);
+            }
 
             Render();
         }
@@ -46,39 +58,9 @@ namespace KBanakakis.Beacon.Samples.Demo
             if (refreshButton != null)
                 refreshButton.onClick.RemoveListener(OnRefreshClicked);
 
-            if (installer != null)
-                installer.ClientReady -= OnClientReady;
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-        }
-
-        private void OnClientReady(BeaconClient client)
-        {
-            if (_client == client)
-            {
-                // Already bound.
-                Render();
-                return;
-            }
-
-            if (_client != null)
-                _client.SnapshotChanged -= OnSnapshotChanged;
-
-            _client = client;
-
-            if (_client != null)
-                _client.SnapshotChanged += OnSnapshotChanged;
-
-            // Installer should be set in OnEnable, but guard anyway.
-            _contextProvider = installer != null ? installer.ContextProvider : null;
-
-            Render();
-        }
-
-        private void OnSnapshotChanged(RepositorySnapshot _)
-        {
-            Render();
+            _binder.Stop();
+            _client = null;
+            _contextProvider = null;
         }
 
         private async void OnRefreshClicked()

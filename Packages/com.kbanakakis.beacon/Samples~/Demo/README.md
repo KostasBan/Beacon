@@ -169,6 +169,8 @@ This component:
 - Evaluates the flag
 - Toggles the target GameObject
 
+> **Important:** Attach `FlagDrivenGameObject` to an always-active object (for example `DemoRoot`) and set `target` to the object you want to toggle. Avoid placing this component on the same object it toggles.
+
 
 ### ValueDrivenText
 
@@ -357,3 +359,14 @@ It is not intended to be a production-ready UI sample.
 ---
 
 End of file.
+
+## Lifecycle Safety Notes
+
+Demo driver components (`BeaconDebugOverlay`, `FlagDrivenGameObject`, `ValueDrivenText`, `ValueDrivenUIScale`) are lifecycle-safe:
+
+- They subscribe in `OnEnable`.
+- They unsubscribe in `OnDisable`.
+- They rebind immediately if `BeaconInstaller` already has a client.
+
+This means they safely support GameObject/component enable-disable toggling, scene reloads, and repeated refresh clicks without duplicate subscriptions.
+These drivers now use a shared runtime `MonoBehaviourClientBinder` helper that retries `BeaconInstaller.Instance` discovery for a short window when enabled before installer startup, so they can still bind without Script Execution Order dependencies.
