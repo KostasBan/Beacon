@@ -96,6 +96,25 @@ namespace KBanakakis.Beacon.Tests
         }
 
         [Test]
+        public async Task DefaultRepositoryRefreshWithNoBytesAndNoCacheReturnsFailure()
+        {
+            var source = new SequenceConfigSource(
+                new ConfigSourceResult(true, null, "etag-1", null));
+            var store = new FakeConfigStore();
+            var repository = new DefaultConfigRepository(source, store, new BasicConfigValidator());
+            var wasCalled = false;
+            repository.SnapshotChanged += _ => wasCalled = true;
+
+            var result = await repository.RefreshAsync(CancellationToken.None);
+
+            Assert.IsFalse(result.Changed);
+            Assert.AreEqual("No config payload available and no cached snapshot exists.", result.Error);
+            Assert.IsFalse(wasCalled);
+            Assert.AreEqual(0, store.StoreCalls);
+            Assert.IsNull(repository.GetSnapshot().Bytes);
+        }
+
+        [Test]
         public async Task FetchFailureDoesNotOverwriteStoredSnapshot()
         {
             var existingPayload = Encoding.UTF8.GetBytes("{\"meta\":{\"schemaVersion\":3,\"configVersion\":\"2.0.0\"}}");

@@ -55,6 +55,11 @@ namespace KBanakakis.Beacon.Repositories
 
             if (fetchResult.Bytes == null)
             {
+                if (_snapshot.Bytes == null)
+                {
+                    return new RefreshResult(false, fetchResult.Error ?? "No config payload available and no cached snapshot exists.");
+                }
+
                 return new RefreshResult(false, null);
             }
 
