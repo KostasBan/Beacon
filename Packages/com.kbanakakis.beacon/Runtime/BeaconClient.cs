@@ -73,7 +73,7 @@ namespace KBanakakis.Beacon
             return configValues.TryGetFloat(key, out var value) ? value : defaultValue;
         }
 
-        public string GetString(string key, string defaultValue = null)
+        public string GetString(string key, string? defaultValue = null)
         {
             if (!TryGetConfigValues(out var configValues))
             {
@@ -94,7 +94,7 @@ namespace KBanakakis.Beacon
             return _repository.RefreshAsync(ct);
         }
 
-        private bool TryGetConfigValues(out JsonConfigValues configValues)
+        private bool TryGetConfigValues(out JsonConfigValues? configValues)
         {
             configValues = null;
             var snapshot = _repository.GetSnapshot();

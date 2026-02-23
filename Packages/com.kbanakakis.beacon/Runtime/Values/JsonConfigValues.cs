@@ -64,7 +64,7 @@ namespace KBanakakis.Beacon.Values
 
         private bool TryExtract<T>(string key, TryExtractToken<T> extractor, out T value)
         {
-            value = default;
+            value = default!;
             return _valuesJson != null && extractor(_valuesJson, key, out value, out var present) && present;
         }
 
