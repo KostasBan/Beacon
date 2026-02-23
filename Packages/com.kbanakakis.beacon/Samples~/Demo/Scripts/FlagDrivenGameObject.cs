@@ -1,6 +1,6 @@
-using System.Collections;
-using UnityEngine;
 using KBanakakis.Beacon.Repositories;
+using KBanakakis.Beacon.Unity;
+using UnityEngine;
 
 namespace KBanakakis.Beacon.Samples.Demo
 {
@@ -11,119 +11,34 @@ namespace KBanakakis.Beacon.Samples.Demo
         [SerializeField] private GameObject target;
         [SerializeField, Min(1)] private int installerLookupMaxFrames = 60;
 
+        private readonly MonoBehaviourClientBinder _binder = new MonoBehaviourClientBinder();
         private BeaconClient _client;
-        private Coroutine _bindRoutine;
-        private bool _warnedMissingInstaller;
         private bool _warnedAboutSelfTarget;
 
         private void OnEnable()
         {
-            StartBindFlow();
+            _binder.Start(
+                this,
+                () => installer ?? BeaconInstaller.Instance,
+                installerLookupMaxFrames,
+                inst => inst.Client,
+                (inst, callback) => inst.ClientReady += callback,
+                (inst, callback) => inst.ClientReady -= callback,
+                inst => installer = inst,
+                client =>
+                {
+                    _client = client;
+                    ApplyFlag();
+                },
+                _ => ApplyFlag(),
+                message => Debug.LogWarning($"[BeaconDemo] {message}"));
+
             ApplyFlag();
         }
 
         private void OnDisable()
         {
-            StopBindRoutine();
-
-            if (installer != null)
-                installer.ClientReady -= OnClientReady;
-
-            UnbindClient();
-        }
-
-        private void OnClientReady(BeaconClient client)
-        {
-            BindClient(client);
-            ApplyFlag();
-        }
-
-        private void OnSnapshotChanged(RepositorySnapshot _)
-        {
-            ApplyFlag();
-        }
-
-        private void StartBindFlow()
-        {
-            StopBindRoutine();
-            EnsureInstaller();
-
-            if (HookInstallerAndBindIfReady())
-                return;
-
-            _bindRoutine = StartCoroutine(BindWhenInstallerReady());
-        }
-
-        private IEnumerator BindWhenInstallerReady()
-        {
-            for (var frame = 0; frame < installerLookupMaxFrames && installer == null; frame++)
-            {
-                EnsureInstaller();
-                if (HookInstallerAndBindIfReady())
-                {
-                    _bindRoutine = null;
-                    yield break;
-                }
-
-                yield return null;
-            }
-
-            if (!_warnedMissingInstaller)
-            {
-                _warnedMissingInstaller = true;
-                Debug.LogWarning($"[BeaconDemo] {nameof(FlagDrivenGameObject)} could not find {nameof(BeaconInstaller)} after {installerLookupMaxFrames} frames.");
-            }
-
-            _bindRoutine = null;
-        }
-
-        private void StopBindRoutine()
-        {
-            if (_bindRoutine == null)
-                return;
-
-            StopCoroutine(_bindRoutine);
-            _bindRoutine = null;
-        }
-
-        private void EnsureInstaller()
-        {
-            if (installer == null)
-                installer = BeaconInstaller.Instance;
-        }
-
-        private bool HookInstallerAndBindIfReady()
-        {
-            if (installer == null)
-                return false;
-
-            installer.ClientReady -= OnClientReady;
-            installer.ClientReady += OnClientReady;
-
-            if (installer.Client != null)
-                BindClient(installer.Client);
-
-            return true;
-        }
-
-        private void BindClient(BeaconClient client)
-        {
-            if (_client == client)
-                return;
-
-            UnbindClient();
-            _client = client;
-
-            if (_client != null)
-                _client.SnapshotChanged += OnSnapshotChanged;
-        }
-
-        private void UnbindClient()
-        {
-            if (_client == null)
-                return;
-
-            _client.SnapshotChanged -= OnSnapshotChanged;
+            _binder.Stop();
             _client = null;
         }
 

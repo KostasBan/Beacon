@@ -369,4 +369,4 @@ Demo driver components (`BeaconDebugOverlay`, `FlagDrivenGameObject`, `ValueDriv
 - They rebind immediately if `BeaconInstaller` already has a client.
 
 This means they safely support GameObject/component enable-disable toggling, scene reloads, and repeated refresh clicks without duplicate subscriptions.
-These drivers also retry `BeaconInstaller.Instance` discovery for a short window when enabled before installer startup, so they can still bind without Script Execution Order dependencies.
+These drivers now use a shared runtime `MonoBehaviourClientBinder` helper that retries `BeaconInstaller.Instance` discovery for a short window when enabled before installer startup, so they can still bind without Script Execution Order dependencies.
