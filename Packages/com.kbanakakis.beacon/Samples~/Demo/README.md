@@ -13,12 +13,13 @@ The demo is intentionally minimal and focuses on architecture rather than visual
 
 ## What This Sample Demonstrates
 
-✔ Repository-driven configuration loading  
-✔ Snapshot-based runtime access  
-✔ Deterministic rollout evaluation  
-✔ Event-driven UI updates (`SnapshotChanged`)  
-✔ Safe refresh lifecycle handling  
-✔ Context-aware flag evaluation  
+✔ Repository-driven configuration loading
+✔ Snapshot-based runtime access
+✔ Deterministic rollout evaluation
+✔ Event-driven UI updates (`SnapshotChanged`)
+✔ Safe refresh lifecycle handling
+✔ Context-aware flag evaluation
+✔ Typed remote config values (`values`)
 
 This scene acts as a reference implementation for integrating Beacon into a real Unity project.
 
@@ -54,6 +55,12 @@ This scene acts as a reference implementation for integrating Beacon into a real
     "new_home_ui": {
       "enabled": true
     }
+  },
+  "values": {
+    "ui_home_title": "Hello Beacon",
+    "ui_scale": 1.1,
+    "max_lives": 5,
+    "show_debug": true
   }
 }
 ```
@@ -162,6 +169,24 @@ This component:
 - Evaluates the flag
 - Toggles the target GameObject
 
+
+### ValueDrivenText
+
+Attach to any `TMP_Text` GameObject.
+
+Assign:
+
+- `installer` → `BeaconInstaller`
+- `targetText` → any `TMP_Text` in the Canvas
+- `valueKey` → `ui_home_title`
+- `defaultValue` → fallback text
+
+This component:
+
+- Subscribes to snapshot changes
+- Reads a string remote value using `BeaconClient.GetString(...)`
+- Updates text whenever config changes
+
 ---
 
 ## Running the Demo
@@ -169,6 +194,7 @@ This component:
 1. Enter Play Mode
 2. Click **Refresh**
 3. Observe the overlay updating
+4. Edit `Config/demo-config.json` (for example, change `values.ui_home_title`) and click **Refresh** again
 
 Overlay displays:
 
@@ -180,6 +206,7 @@ Overlay displays:
 - `last refresh result`
 
 `NewHomePanel` visibility updates based on the `new_home_ui` flag.
+Any `ValueDrivenText` target updates from `values.ui_home_title`.
 
 ---
 
