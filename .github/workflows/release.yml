@@ -1,0 +1,167 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (SemVer without v prefix, e.g. 0.2.0)"
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Validate version input
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+
+      - name: Bump package version
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          FILE="Packages/com.kbanakakis.beacon/package.json"
+          tmpfile=$(mktemp)
+          jq --arg version "$VERSION" '.version = $version' "$FILE" > "$tmpfile"
+          mv "$tmpfile" "$FILE"
+
+      - name: Update changelog
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          DATE="$(date +%Y-%m-%d)"
+          CHANGELOG="CHANGELOG.md"
+          TEMPLATE=$(cat <<EOF
+## [$VERSION] - $DATE
+### Added
+- TBD
+
+### Changed
+- TBD
+
+### Fixed
+- TBD
+
+EOF
+)
+          if [ -f "$CHANGELOG" ]; then
+            if grep -q "## \[$VERSION\]" "$CHANGELOG"; then
+              echo "CHANGELOG already has section for $VERSION"
+            else
+              awk -v block="$TEMPLATE" '
+                BEGIN { inserted = 0 }
+                { print }
+                /^## \[Unreleased\]/ && inserted == 0 {
+                  print ""
+                  printf "%s", block
+                  inserted = 1
+                }
+                END {
+                  if (inserted == 0) {
+                    print ""
+                    printf "%s", block
+                  }
+                }
+              ' "$CHANGELOG" > "$CHANGELOG.tmp"
+              mv "$CHANGELOG.tmp" "$CHANGELOG"
+            fi
+          else
+            cat > "$CHANGELOG" <<EOF
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## [Unreleased]
+
+$TEMPLATE
+EOF
+          fi
+
+      - name: Commit release files
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          git add Packages/com.kbanakakis.beacon/package.json CHANGELOG.md
+          git commit -m "chore(release): prepare v$VERSION"
+
+      - name: Create and push tag
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          git tag "v$VERSION"
+          git push origin HEAD
+          git push origin "v$VERSION"
+
+  github-release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release version
+        id: version
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build release notes from changelog
+        id: notes
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.version.outputs.version }}"
+          CHANGELOG="CHANGELOG.md"
+          if [ ! -f "$CHANGELOG" ]; then
+            {
+              echo "notes<<EOF"
+              echo "Release v$VERSION"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          NOTES=$(awk -v version="$VERSION" '
+            $0 ~ "^## \\[" version "\\]" { capture = 1; next }
+            capture && /^## \[/ { exit }
+            capture { print }
+          ' "$CHANGELOG" | sed '/^$/N;/^\n$/D')
+
+          if [ -z "$NOTES" ]; then
+            NOTES="Release v$VERSION"
+          fi
+
+          {
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          body: ${{ steps.notes.outputs.notes }}
+          generate_release_notes: true

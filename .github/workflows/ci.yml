@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop]
+
+jobs:
+  unity-editmode-tests:
+    name: Unity EditMode Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Unity EditMode tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          unityVersion: 2022.3.20f1
+          testMode: editmode
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Unity test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-editmode-test-results
+          path: artifacts
+          if-no-files-found: warn
+
+  package-validation:
+    name: UPM Package Validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate package manifest fields
+        run: |
+          set -euo pipefail
+          PKG="Packages/com.kbanakakis.beacon/package.json"
+          jq -e '.name and .version and .unity and .displayName and .description and .author and .license' "$PKG" >/dev/null
+          jq -e '.name == "com.kbanakakis.beacon"' "$PKG" >/dev/null
+
+      - name: Validate package can be archived
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          tar -czf artifacts/com.kbanakakis.beacon.tgz Packages/com.kbanakakis.beacon
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: upm-package-archive
+          path: artifacts/com.kbanakakis.beacon.tgz
