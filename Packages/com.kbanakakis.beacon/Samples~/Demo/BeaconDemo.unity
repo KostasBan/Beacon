@@ -407,7 +407,6 @@ GameObject:
   - component: {fileID: 381918950}
   - component: {fileID: 381918953}
   - component: {fileID: 381918952}
-  - component: {fileID: 381918954}
   m_Layer: 5
   m_Name: NewHomePanel
   m_TagString: Untagged
@@ -472,21 +471,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 381918949}
   m_CullTransparentMesh: 1
---- !u!114 &381918954
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 381918949}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 09ad1700eaebe00408a646d3b9a63d4e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::KBanakakis.Beacon.Samples.Demo.FlagDrivenGameObject
-  installer: {fileID: 1402}
-  flagKey: new_home_ui
-  target: {fileID: 381918949}
 --- !u!1 &599978429
 GameObject:
   m_ObjectHideFlags: 0
@@ -499,6 +483,9 @@ GameObject:
   - component: {fileID: 599978432}
   - component: {fileID: 599978431}
   - component: {fileID: 599978430}
+  - component: {fileID: 599978435}
+  - component: {fileID: 599978434}
+  - component: {fileID: 599978436}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -592,6 +579,53 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &599978434
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599978429}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4ced0de34684644a8802603646f2ac9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KBanakakis.Beacon.Samples.Demo.ValueDrivenText
+  installer: {fileID: 1402}
+  targetText: {fileID: 1273193053}
+  valueKey: ui_home_title
+  defaultValue: Welcome
+--- !u!114 &599978435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599978429}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 09ad1700eaebe00408a646d3b9a63d4e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KBanakakis.Beacon.Samples.Demo.FlagDrivenGameObject
+  installer: {fileID: 1402}
+  flagKey: new_home_ui
+  target: {fileID: 381918949}
+--- !u!114 &599978436
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 599978429}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9f17f49bfd54ff38cc7317a78afdc59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KBanakakis.Beacon.Samples.Demo.ValueDrivenUIScale
+  installer: {fileID: 1402}
+  targetRect: {fileID: 1273193052}
+  valueKey: ui_scale
+  defaultValue: 1
 --- !u!1 &693459405
 GameObject:
   m_ObjectHideFlags: 0
@@ -740,8 +774,6 @@ GameObject:
   - component: {fileID: 1273193052}
   - component: {fileID: 1273193054}
   - component: {fileID: 1273193053}
-  - component: {fileID: 1273193055}
-  - component: {fileID: 1273193056}
   m_Layer: 5
   m_Name: ValueDrivenText
   m_TagString: Untagged
@@ -868,38 +900,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1273193051}
   m_CullTransparentMesh: 1
---- !u!114 &1273193055
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1273193051}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e4ced0de34684644a8802603646f2ac9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::KBanakakis.Beacon.Samples.Demo.ValueDrivenText
-  installer: {fileID: 1402}
-  targetText: {fileID: 1273193053}
-  valueKey: ui_home_title
-  defaultValue: Welcome
---- !u!114 &1273193056
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1273193051}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f9f17f49bfd54ff38cc7317a78afdc59, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::KBanakakis.Beacon.Samples.Demo.ValueDrivenUIScale
-  installer: {fileID: 1402}
-  targetRect: {fileID: 1273193052}
-  valueKey: ui_scale
-  defaultValue: 1
 --- !u!1 &1457259826
 GameObject:
   m_ObjectHideFlags: 0
@@ -1053,11 +1053,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 599978433}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 114}
-  m_SizeDelta: {x: 200, y: 50}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: -20}
+  m_SizeDelta: {x: 0, y: 50}
+  m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1655130447
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1105,8 +1105,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 16
+  m_fontSizeBase: 16
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
