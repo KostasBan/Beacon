@@ -1,0 +1,20 @@
+name: Package Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate-package:
+    name: Validate package metadata and structure
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate package
+        shell: pwsh
+        run: ./Tools/Validate-Package.ps1

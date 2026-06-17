@@ -1,0 +1,73 @@
+name: Unity EditMode Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  editmode-tests:
+    name: Unity ${{ matrix.unityVersion }} EditMode tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        unityVersion:
+          - 6000.3.16f1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Prepare package test directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir test-package
+          rsync -a \
+            --exclude='.git' \
+            --exclude='test-package' \
+            ./ test-package/
+
+      - name: Check Unity credentials
+        id: unity-credentials
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if [[ -n "$UNITY_LICENSE" || -n "$UNITY_SERIAL" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Unity license secrets are not configured; skipping Unity EditMode tests."
+          fi
+
+      - name: Run EditMode tests
+        id: tests
+        if: steps.unity-credentials.outputs.configured == 'true'
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        with:
+          packageMode: true
+          projectPath: test-package
+          unityVersion: ${{ matrix.unityVersion }}
+          testMode: editmode
+          artifactsPath: editmode-artifacts
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Unity ${{ matrix.unityVersion }} EditMode Test Results
+
+      - name: Upload test artifacts
+        if: always() && steps.unity-credentials.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unity-editmode-test-results-${{ matrix.unityVersion }}
+          path: editmode-artifacts

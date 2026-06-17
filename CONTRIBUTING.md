@@ -1,56 +1,43 @@
-# Contributing to Beacon
+# Contributing To Beacon
 
-Thanks for contributing to Beacon. This project uses a `main` / `develop` branching model and Semantic Versioning for package releases.
+Beacon is a small Unity remote configuration and feature flag package. Contributions should keep it focused, dependency-light, safe by default, and easy to install through Unity Package Manager.
 
-## Branching model
+## Local Validation
 
-- `main`: stable history, release-ready commits.
-- `develop`: integration branch for upcoming work.
-- Feature branches: create from `develop` and open PRs targeting `develop` unless a hotfix is required.
+Use Unity `6000.3` or newer.
 
-## Versioning rules (SemVer)
+Recommended flow:
 
-Beacon package versions follow `MAJOR.MINOR.PATCH`:
+1. Create or open a clean Unity project outside this package root.
+2. Add Beacon through Package Manager using a local path or Git URL.
+3. Add `com.kostasban.beacon` to the project's `testables` list.
+4. Run EditMode tests from Unity Test Runner.
+5. Import the `Beacon Demo` sample and confirm it compiles.
 
-- `MAJOR`: breaking API or behavior changes.
-- `MINOR`: backwards-compatible feature additions.
-- `PATCH`: backwards-compatible bug fixes.
+Keep local validation projects ignored, for example under `DevProject/`.
 
-Release tags use a `v` prefix (for example, `v0.2.0`).
+## Package Rules
 
-## Running tests locally
+- Runtime source belongs in `Runtime/`.
+- Editor-only tooling belongs in `Editor/`.
+- Runtime tests belong in `Tests/Runtime/`.
+- Samples belong in `Samples~/`.
+- Keep public APIs small and intentional.
+- Do not add external runtime dependencies without a package-level decision.
+- Keep Beacon independent from Lens; Lens integration should be optional.
+- Document main-thread assumptions and expensive refresh behavior.
+- Preserve source compatibility once the package is public.
 
-### Unity Editor (recommended)
+## Versioning
 
-1. Open a Unity project that references this package.
-2. Open **Window → General → Test Runner**.
-3. Run **EditMode** tests for `com.kbanakakis.beacon.tests`.
+Beacon uses semantic versioning. Tag releases with a `v` prefix, for example `v0.1.0`.
 
-### Unity CLI example
+- Patch: bug fixes and docs.
+- Minor: additive public API, sample, or tooling improvements.
+- Major: breaking public API or behavior changes.
 
-You can also run tests in batch mode:
+## Safety
 
-```bash
-/Applications/Unity/Hub/Editor/2022.3.20f1/Unity \
-  -batchmode \
-  -projectPath <path-to-project-using-beacon> \
-  -runTests \
-  -testPlatform editmode \
-  -logFile - \
-  -quit
-```
+Remote config can affect live runtime behavior. Keep defaults explicit, validate payloads before publishing snapshots, and fail closed for risky flags.
 
-## Cutting a release
-
-Use **GitHub Actions → Release** workflow:
-
-1. Open the **Release** workflow.
-2. Run it manually with `version` input (for example, `0.2.0`).
-3. The workflow will:
-   - bump `Packages/com.kbanakakis.beacon/package.json`
-   - create/update `CHANGELOG.md` section for the version
-   - commit release metadata
-   - create and push tag `vX.Y.Z`
-4. Tag push triggers GitHub Release creation with notes from the matching changelog section.
-
-You can also push a pre-created `v*` tag directly to generate a GitHub Release from existing changelog content.
+Do not include secrets, player-private data, production credentials, or irreversible debug actions in public issues, sample config, screenshots, copied reports, or docs.

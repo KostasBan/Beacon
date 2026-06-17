@@ -1,0 +1,18 @@
+{
+  "name": "KostasBan.Beacon.Editor",
+  "rootNamespace": "KostasBan.Beacon.Editor",
+  "references": [
+    "KostasBan.Beacon"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

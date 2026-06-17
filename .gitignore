@@ -1,0 +1,38 @@
+# Unity local projects and generated state
+DevProject/
+test-package/
+TestResults.xml
+DevProject-*.log
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/
+MemoryCaptures/
+Recordings/
+
+# Unity generated files
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vs/
+.vscode/
+.idea/

@@ -1,0 +1,35 @@
+{
+  "name": "com.kostasban.beacon",
+  "version": "0.1.0",
+  "displayName": "Beacon Remote Config",
+  "description": "Safe runtime remote configuration and feature flags for Unity.",
+  "unity": "6000.3",
+  "license": "MIT",
+  "author": {
+    "name": "KostasBan"
+  },
+  "documentationUrl": "https://github.com/KostasBan/Beacon#readme",
+  "changelogUrl": "https://github.com/KostasBan/Beacon/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/KostasBan/Beacon/blob/main/LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KostasBan/Beacon.git"
+  },
+  "dependencies": {
+    "com.unity.modules.unitywebrequest": "1.0.0"
+  },
+  "keywords": [
+    "remote-config",
+    "feature-flags",
+    "runtime",
+    "configuration",
+    "qa"
+  ],
+  "samples": [
+    {
+      "displayName": "Beacon Demo",
+      "description": "Sample scene demonstrating runtime configuration and feature flags.",
+      "path": "Samples~/Demo"
+    }
+  ]
+}
